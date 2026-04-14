@@ -1,0 +1,1002 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>⚗️ 이온의 이동 실험</title>
+<link href="https://fonts.googleapis.com/css2?family=Nanum+Gothic+Coding&family=Noto+Sans+KR:wght@300;400;500;700;900&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<style>
+:root{--bg:#f0f4fc;--surface:#ffffff;--card:#ffffff;--card2:#f5f8ff;--border:#d0dcf0;--primary:#2563eb;--primary-glow:rgba(37,99,235,0.12);--success:#16a34a;--warning:#d97706;--danger:#dc2626;--text:#1a2238;--text2:#4a5a7a;--text3:#9aaac8;--shadow:rgba(0,0,0,0.10);--logo-text:#2563eb}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;display:flex}
+#sidebar{width:230px;background:var(--surface);border-right:1.5px solid var(--border);position:fixed;top:0;left:0;bottom:0;overflow-y:auto;display:flex;flex-direction:column;z-index:100}
+.s-logo{padding:20px 18px 16px;border-bottom:1.5px solid var(--border)}
+.s-logo h1{font-family:'Nanum Gothic Coding',monospace;font-size:15px;color:var(--logo-text);font-weight:700}
+.s-logo p{font-size:11px;color:var(--text2);margin-top:5px;line-height:1.5}
+.phase-lbl{padding:14px 16px 4px;font-size:10px;font-weight:700;letter-spacing:2px;color:var(--text3);text-transform:uppercase}
+.nav-btn{display:flex;align-items:center;gap:10px;padding:9px 14px;cursor:pointer;border:none;background:none;color:var(--text2);font-family:'Noto Sans KR',sans-serif;font-size:13px;width:calc(100% - 14px);text-align:left;transition:all .15s;border-radius:8px;margin:1px 7px;position:relative}
+.nav-btn:hover:not(.locked){background:var(--primary-glow);color:var(--text)}
+.nav-btn.active{background:var(--primary-glow);color:var(--primary);font-weight:700}
+.nav-btn.locked{opacity:.4;cursor:not-allowed}
+.nav-btn.locked::after{content:'🔒';position:absolute;right:10px;font-size:11px}
+.nav-btn.done-tab::before{content:'✓';position:absolute;right:10px;color:var(--success);font-weight:900;font-size:13px}
+.nav-btn .ic{font-size:16px;flex-shrink:0}
+#content{margin-left:230px;flex:1;min-height:100vh}
+.tab-pane{display:none;padding:32px 36px;max-width:960px}
+.tab-pane.active{display:block}
+.ph{margin-bottom:24px;padding-bottom:20px;border-bottom:1.5px solid var(--border)}
+.ph h2{font-size:22px;font-weight:900;color:var(--text);display:flex;align-items:center;gap:10px}
+.ph p{font-size:13px;color:var(--text2);margin-top:6px;line-height:1.6}
+.card{background:var(--card);border:1.5px solid var(--border);border-radius:14px;padding:20px;margin-bottom:16px;box-shadow:0 2px 12px var(--shadow)}
+.card h3{font-size:14px;font-weight:700;color:var(--text);margin-bottom:14px;display:flex;align-items:center;gap:8px}
+.cl-item{display:flex;align-items:flex-start;gap:12px;padding:10px 0;border-bottom:1px solid var(--border);cursor:pointer;transition:opacity .2s}
+.cl-item:last-child{border-bottom:none}
+.cb{width:22px;height:22px;border:2px solid var(--border);border-radius:6px;flex-shrink:0;display:flex;align-items:center;justify-content:center;transition:all .2s;margin-top:2px}
+.cl-item.chk .cb{background:var(--success);border-color:var(--success)}
+.cl-item.chk .cb::after{content:'✓';color:#fff;font-size:13px;font-weight:900}
+.cl-item.chk .cl-text{text-decoration:line-through;color:var(--text2)}
+.cl-text{font-size:13.5px;line-height:1.6}
+.cl-sub{font-size:11.5px;color:var(--text2);margin-top:3px}
+.pb-wrap{background:var(--border);border-radius:99px;height:7px;margin:10px 0 4px}
+.pb{height:100%;border-radius:99px;background:var(--success);transition:width .3s}
+.btn{padding:9px 20px;border-radius:9px;border:none;cursor:pointer;font-family:'Noto Sans KR',sans-serif;font-size:13px;font-weight:700;transition:all .15s}
+.btn-primary{background:var(--primary);color:#fff}
+.btn-primary:hover{opacity:.85}
+.btn-outline{background:transparent;border:1.5px solid var(--border);color:var(--text)}
+.btn-outline:hover{border-color:var(--primary);color:var(--primary)}
+.btn-sm{padding:5px 14px;font-size:12px}
+.btn-next{display:block;width:100%;padding:14px;background:var(--primary);color:#fff;border:none;border-radius:12px;font-family:'Noto Sans KR',sans-serif;font-size:15px;font-weight:700;cursor:pointer;margin-top:20px;transition:all .15s}
+.btn-next:hover{opacity:.85}
+.btn-next:disabled{background:var(--border);color:var(--text3);cursor:not-allowed}
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.g3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px}
+.step-item{display:flex;gap:14px;padding:16px 0;border-bottom:1px solid var(--border)}
+.step-item:last-child{border-bottom:none}
+.step-num{width:32px;height:32px;border-radius:50%;background:var(--primary-glow);color:var(--primary);font-weight:900;font-size:14px;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-family:'Nanum Gothic Coding',monospace;margin-top:2px;border:2px solid var(--primary)}
+.step-item.done .step-num{background:rgba(22,163,74,0.15);color:var(--success);border-color:var(--success)}
+.step-body{flex:1}
+.step-body h4{font-size:14px;font-weight:700;color:var(--text);margin-bottom:6px}
+.step-body p{font-size:13px;color:var(--text2);line-height:1.8}
+.tip{background:rgba(217,119,6,0.08);border-left:3px solid var(--warning);padding:8px 12px;border-radius:0 8px 8px 0;font-size:12.5px;color:var(--warning);margin-top:8px;line-height:1.6}
+.tip-blue{background:var(--primary-glow);border-left:3px solid var(--primary);padding:8px 12px;border-radius:0 8px 8px 0;font-size:12.5px;color:var(--primary);margin-top:8px;line-height:1.6}
+.step-ck{padding:4px 14px;border-radius:99px;border:1.5px solid var(--border);background:none;color:var(--text2);cursor:pointer;font-size:12px;font-family:'Noto Sans KR',sans-serif;white-space:nowrap;flex-shrink:0;height:30px;transition:all .2s;align-self:flex-start;margin-top:4px}
+.step-item.done .step-ck{background:rgba(22,163,74,0.15);border-color:var(--success);color:var(--success)}
+.timer-disp{font-family:'Nanum Gothic Coding',monospace;font-size:56px;color:var(--primary);text-align:center;padding:20px 0;letter-spacing:6px}
+.timer-ctrl{display:flex;gap:10px;justify-content:center;margin-bottom:20px}
+input[type=text],input[type=number],textarea,select{background:var(--card2);border:1.5px solid var(--border);color:var(--text);padding:9px 12px;border-radius:8px;font-family:'Noto Sans KR',sans-serif;font-size:13px;outline:none;transition:border .15s;width:100%}
+input:focus,textarea:focus,select:focus{border-color:var(--primary)}
+textarea{resize:vertical;min-height:80px}
+table{width:100%;border-collapse:collapse}
+th,td{padding:10px 14px;border:1px solid var(--border);font-size:13px;text-align:center}
+th{background:var(--primary-glow);color:var(--primary);font-weight:700;font-size:12px}
+td input{width:100%;background:transparent;border:none;color:var(--text);text-align:center;font-family:'Nanum Gothic Coding',monospace;font-size:13px;padding:0}
+.acc-item{border:1.5px solid var(--border);border-radius:10px;margin-bottom:8px;overflow:hidden}
+.acc-hd{padding:14px 16px;cursor:pointer;display:flex;justify-content:space-between;align-items:center;background:var(--card);font-size:14px;font-weight:600;color:var(--text);transition:background .15s}
+.acc-hd:hover{background:var(--card2)}
+.acc-body{display:none;padding:14px 16px;background:var(--surface);font-size:13px;color:var(--text2);line-height:1.8;border-top:1px solid var(--border)}
+.acc-item.open .acc-body{display:block}
+.acc-item.open .acc-ar{transform:rotate(180deg)}
+.acc-ar{transition:transform .2s;font-size:10px;color:var(--text3)}
+.alert{padding:12px 16px;border-radius:10px;font-size:13px;margin-bottom:14px;display:flex;align-items:flex-start;gap:10px;line-height:1.6}
+.a-warn{background:rgba(217,119,6,0.08);border:1.5px solid rgba(217,119,6,0.3);color:var(--warning)}
+.a-err{background:rgba(220,38,38,0.08);border:1.5px solid rgba(220,38,38,0.3);color:var(--danger)}
+.a-ok{background:rgba(22,163,74,0.08);border:1.5px solid rgba(22,163,74,0.3);color:var(--success)}
+.a-info{background:var(--primary-glow);border:1.5px solid rgba(37,99,235,0.3);color:var(--primary)}
+.a-purple{background:rgba(139,92,246,0.08);border:1.5px solid rgba(139,92,246,0.35);color:#7c3aed}
+.cl-step{display:flex;gap:14px;align-items:flex-start;padding:14px;background:var(--card);border:1.5px solid var(--border);border-radius:10px;margin-bottom:10px;cursor:pointer;transition:opacity .2s}
+.cl-step.done{opacity:.5}
+.cl-step.done h4{text-decoration:line-through}
+.cls-ic{font-size:28px;flex-shrink:0}
+.cls-body h4{font-size:14px;font-weight:700;color:var(--text);margin-bottom:4px}
+.cls-body p{font-size:12.5px;color:var(--text2);line-height:1.6}
+.th-sec{border-left:3px solid var(--primary);padding-left:16px;margin-bottom:20px}
+.th-sec h4{font-size:14px;font-weight:700;color:var(--primary);margin-bottom:7px}
+.th-sec p{font-size:13px;color:var(--text2);line-height:1.8}
+.mem-row{display:flex;gap:8px;margin-bottom:8px;align-items:center}
+.mem-num{width:28px;height:28px;background:var(--primary-glow);color:var(--primary);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;flex-shrink:0;font-family:'Nanum Gothic Coding',monospace;border:1.5px solid var(--primary)}
+.role-card{background:var(--card);border:2px solid var(--border);border-radius:14px;padding:18px;transition:all .2s}
+.role-card.assigned{border-color:var(--primary);background:var(--primary-glow)}
+.role-em{font-size:34px;margin-bottom:10px}
+.role-ti{font-size:14px;font-weight:700;color:var(--text)}
+.role-de{font-size:12px;color:var(--text2);margin:6px 0 12px;line-height:1.7}
+.role-sel{width:100%;background:var(--surface);border:1.5px solid var(--border);color:var(--text);padding:8px 10px;border-radius:8px;font-family:'Noto Sans KR',sans-serif;font-size:13px;outline:none}
+.role-multi{font-size:11px;color:var(--text3);margin-top:6px}
+.fr{display:flex;gap:10px;margin-bottom:10px;align-items:center}
+.fr label{font-size:13px;color:var(--text2);width:130px;flex-shrink:0;line-height:1.5}
+.fr input,.fr textarea,.fr select{flex:1}
+.tag{display:inline-block;padding:2px 10px;border-radius:99px;font-size:11px;font-weight:700}
+.t-bl{background:var(--primary-glow);color:var(--primary)}
+.sim-banner{display:flex;align-items:center;gap:16px;background:linear-gradient(135deg,var(--primary-glow),rgba(139,92,246,0.08));border:2px solid var(--primary);border-radius:16px;padding:20px 24px;margin-bottom:20px;text-decoration:none;color:inherit;transition:all .2s;cursor:pointer}
+.sim-banner:hover{transform:translateY(-2px);box-shadow:0 6px 20px var(--shadow)}
+.sim-ic{font-size:42px;flex-shrink:0}
+.sim-txt h3{font-size:16px;font-weight:900;color:var(--primary);margin-bottom:4px}
+.sim-txt p{font-size:13px;color:var(--text2)}
+.sim-arrow{margin-left:auto;font-size:22px;color:var(--primary)}
+.rp{background:#fff;color:#222;padding:36px;border-radius:12px;font-size:13.5px;line-height:1.8;box-shadow:0 4px 24px var(--shadow)}
+.rp h2{font-size:20px;font-weight:900;text-align:center;margin-bottom:6px;color:#111;border-bottom:2px solid #222;padding-bottom:12px}
+.rp h3{font-size:14px;font-weight:700;margin:16px 0 6px;color:#333;background:#f0f4ff;padding:5px 10px;border-radius:4px}
+.rp p{color:#444;margin-bottom:6px}
+.rp table{margin:10px 0}
+.rp th{background:#dceeff;color:#1a4a8a}
+.rp td{color:#333}
+.rp .photo-box{border:2px dashed #ccc;border-radius:8px;padding:16px;text-align:center;color:#aaa;font-size:12px;background:#fafafa}
+.discuss-banner{background:linear-gradient(135deg,rgba(139,92,246,0.06),rgba(37,99,235,0.06));border:2px solid #7c3aed;border-radius:14px;padding:18px 22px;margin-bottom:20px}
+.discuss-banner h3{font-size:15px;font-weight:900;color:#7c3aed;margin-bottom:10px;display:flex;align-items:center;gap:8px}
+.discuss-banner ul{list-style:none;padding:0}
+.discuss-banner li{font-size:13px;color:var(--text2);padding:4px 0;display:flex;align-items:flex-start;gap:8px;line-height:1.6}
+.discuss-banner li::before{content:'💬';flex-shrink:0}
+.photo-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-top:4px}
+.photo-wrap{display:flex;flex-direction:column;gap:4px}
+.photo-slot{background:var(--card2);border:1.5px dashed var(--border);border-radius:8px;aspect-ratio:4/3;display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:pointer;transition:all .2s;position:relative;overflow:hidden}
+.photo-slot:hover{border-color:var(--primary)}
+.photo-slot img{width:100%;height:100%;object-fit:cover;position:absolute;top:0;left:0}
+.photo-slot .ps-lbl{font-size:11px;color:var(--text2);text-align:center;padding:4px;position:relative;z-index:1}
+.photo-slot.has-img .ps-lbl{display:none}
+.photo-slot .ps-ic{font-size:22px;position:relative;z-index:1;margin-bottom:4px}
+.photo-slot input{display:none}
+.photo-cap{width:100%;background:var(--card2);border:1.5px solid var(--border);color:var(--text);padding:6px 10px;border-radius:6px;font-size:12px;font-family:'Noto Sans KR',sans-serif;outline:none}
+.photo-cap:focus{border-color:var(--primary)}
+.disqualify-banner{background:rgba(220,38,38,0.06);border:2.5px solid var(--danger);border-radius:14px;padding:18px 22px;margin-bottom:20px;animation:pulse-border 2s infinite}
+.disqualify-banner h3{font-size:15px;font-weight:900;color:var(--danger);margin-bottom:10px;display:flex;align-items:center;gap:8px}
+.disqualify-banner ul{list-style:none;padding:0}
+.disqualify-banner li{font-size:13px;color:var(--danger);padding:4px 0;display:flex;align-items:flex-start;gap:8px;line-height:1.6;font-weight:600}
+.disqualify-banner li::before{content:'🚫';flex-shrink:0}
+@keyframes pulse-border{0%,100%{border-color:var(--danger)}50%{border-color:rgba(220,38,38,0.3)}}
+.q-card{background:var(--card2);border:1.5px solid var(--border);border-radius:10px;padding:16px;margin-bottom:12px}
+.q-card h4{font-size:13px;font-weight:700;color:var(--text);margin-bottom:8px}
+.q-card textarea{width:100%;min-height:60px}
+/* PDF 저장 오버레이 */
+#pdf-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.55);z-index:9999;align-items:center;justify-content:center;flex-direction:column;gap:18px}
+#pdf-overlay.show{display:flex}
+#pdf-progress-box{background:#fff;border-radius:16px;padding:32px 40px;text-align:center;box-shadow:0 8px 40px rgba(0,0,0,0.25);min-width:280px}
+#pdf-progress-box h3{font-size:16px;font-weight:700;color:var(--text);margin-bottom:14px}
+#pdf-progress-bar-wrap{background:#e5e7eb;border-radius:99px;height:10px;margin-bottom:10px;overflow:hidden}
+#pdf-progress-bar{height:100%;border-radius:99px;background:var(--primary);transition:width .3s;width:0%}
+#pdf-progress-label{font-size:13px;color:var(--text2)}
+::-webkit-scrollbar{width:5px}::-webkit-scrollbar-track{background:transparent}::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px}
+@media print{
+  #sidebar{display:none}
+  #content{margin-left:0}
+  .tab-pane{display:none!important}
+  .tab-pane.active{display:block!important}
+  .no-print{display:none}
+  .btn-next{display:none}
+  body{background:#fff}
+}
+</style>
+</head>
+<body>
+
+<!-- PDF 저장 오버레이 -->
+<div id="pdf-overlay">
+  <div id="pdf-progress-box">
+    <h3>📄 이미지 PDF 생성 중...</h3>
+    <div id="pdf-progress-bar-wrap"><div id="pdf-progress-bar"></div></div>
+    <div id="pdf-progress-label">준비 중...</div>
+  </div>
+</div>
+
+<nav id="sidebar">
+  <div class="s-logo">
+    <h1>⚗️ ION LAB</h1>
+    <p>이온의 이동 확인 실험<br>중학교 2학년</p>
+  </div>
+  <div class="phase-lbl">📌 실험 전</div>
+  <button class="nav-btn active" onclick="tryTab(0)" id="nb0"><span class="ic">🛡️</span> 안전 점검</button>
+  <button class="nav-btn locked" onclick="tryTab(1)" id="nb1"><span class="ic">📦</span> 준비물 확인</button>
+  <button class="nav-btn locked" onclick="tryTab(2)" id="nb2"><span class="ic">👥</span> 역할 분담</button>
+  <div class="phase-lbl">🔬 실험 중</div>
+  <button class="nav-btn locked" onclick="tryTab(3)" id="nb3"><span class="ic">💬</span> 실험 유의사항 토의</button>
+  <button class="nav-btn locked" onclick="tryTab(4)" id="nb4"><span class="ic">🧪</span> 실험 과정</button>
+  <button class="nav-btn locked" onclick="tryTab(5)" id="nb5"><span class="ic">⏱️</span> 타이머</button>
+  <button class="nav-btn locked" onclick="tryTab(6)" id="nb6"><span class="ic">📚</span> 관련 이론</button>
+  <button class="nav-btn locked" onclick="tryTab(7)" id="nb7"><span class="ic">🖥️</span> 시뮬레이션</button>
+  <button class="nav-btn locked" onclick="tryTab(8)" id="nb8"><span class="ic">🔧</span> 트러블슈팅</button>
+  <div class="phase-lbl">✅ 실험 후</div>
+  <button class="nav-btn locked" onclick="tryTab(9)" id="nb9"><span class="ic">📊</span> 결과 정리</button>
+  <button class="nav-btn locked" onclick="tryTab(10)" id="nb10"><span class="ic">🗑️</span> 뒷정리</button>
+  <button class="nav-btn locked" onclick="tryTab(11)" id="nb11"><span class="ic">📄</span> 보고서</button>
+</nav>
+<main id="content">
+
+<!-- TAB 0: 안전 -->
+<section class="tab-pane active" id="t0">
+  <div class="ph"><h2>🛡️ 안전 점검</h2><p>실험 시작 전 모두 확인하세요!</p></div>
+  <div class="alert a-err">⚠️ 안전 점검을 완료해야 다음 단계로 넘어갈 수 있습니다.</div>
+  <div class="disqualify-banner">
+    <h3>🚨 실험 즉시 정지 &amp; 자격 박탈 안내</h3>
+    <ul>
+      <li>전원 장치의 <strong>전압 다이얼</strong>을 학생이 임의로 조절하는 경우</li>
+      <li>전원 장치의 <strong>전류 다이얼</strong>을 학생이 임의로 조절하는 경우</li>
+      <li>위 행위가 적발되면 <strong>해당 조 실험은 즉시 정지</strong>되며, <strong>실험 참여 자격이 박탈</strong>됩니다.</li>
+    </ul>
+  </div>
+  <div class="card" style="margin-bottom:16px">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+      <span style="font-size:13px;font-weight:700">안전 점검 진행률</span>
+      <span id="safety-count" style="font-size:13px;color:var(--text2)">0/0</span>
+    </div>
+    <div class="pb-wrap"><div class="pb" id="safety-pb" style="width:0%"></div></div>
+  </div>
+  <div class="g2">
+    <div class="card"><h3>🧤 실험 시 안전</h3><div id="safety-personal"></div></div>
+    <div class="card"><h3>⚡ 전기 안전</h3><div id="safety-electric"></div></div>
+    <div class="card"><h3>🧴 약품 취급</h3><div id="safety-chemical"></div></div>
+    <div class="card"><h3>🚨 비상 대비</h3><div id="safety-emergency"></div></div>
+  </div>
+  <button class="btn-next" id="next0" disabled onclick="completeTab(0);showTab(1)">✅ 안전 점검 완료 → 준비물 확인으로</button>
+</section>
+
+<!-- TAB 1: 준비물 -->
+<section class="tab-pane" id="t1">
+  <div class="ph"><h2>📦 준비물 확인</h2><p>선생님이 미리 세팅해둔 준비물을 눈으로 확인하고 체크해요!</p></div>
+  <div class="alert a-info">💡 선생님이 모든 시약과 기구를 미리 세팅해두었어요. 여러분은 눈으로 확인만 하면 됩니다!</div>
+  <div class="card" style="margin-bottom:16px">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
+      <span style="font-size:13px;font-weight:700">확인 현황</span>
+      <span id="mat-count" style="font-size:13px;color:var(--text2)">0/0</span>
+    </div>
+    <div class="pb-wrap"><div class="pb" id="mat-pb" style="width:0%"></div></div>
+  </div>
+  <div class="g2">
+    <div class="card"><h3>🔬 실험 기구 (선생님 세팅)</h3><div id="mat-equip"></div></div>
+    <div class="card"><h3>🧪 시약 및 재료</h3><div id="mat-reagent"></div></div>
+  </div>
+  <button class="btn-next" id="next1" disabled onclick="completeTab(1);showTab(2)">✅ 확인 완료 → 역할 분담으로</button>
+</section>
+
+<!-- TAB 2: 역할 -->
+<section class="tab-pane" id="t2">
+  <div class="ph"><h2>👥 역할 분담</h2><p>조원 이름을 입력하고 역할을 배정하세요.</p></div>
+  <div class="card" style="margin-bottom:20px">
+    <h3>조원 이름 입력</h3>
+    <div id="member-inputs"></div>
+    <div style="display:flex;gap:8px;margin-top:12px">
+      <button class="btn btn-outline btn-sm" onclick="addMember()">+ 조원 추가</button>
+      <button class="btn btn-outline btn-sm" onclick="removeMember()" id="remove-member-btn" style="display:none">- 조원 삭제</button>
+    </div>
+    <div style="font-size:11px;color:var(--text3);margin-top:6px">현재 <span id="member-count-display">4</span>명 구성</div>
+  </div>
+  <div id="roles-grid" class="g2"></div>
+  <button class="btn-next" id="next2" disabled onclick="completeTab(2);showTab(3)">✅ 역할 배정 완료 → 실험 유의사항 토의로</button>
+</section>
+
+<!-- TAB 3: 실험 유의사항 토의 -->
+<section class="tab-pane" id="t3">
+  <div class="ph"><h2>💬 실험 유의사항 토의</h2><p>실험을 시작하기 전, 아래 질문에 대해 조원들과 토의한 후 답을 적어주세요.</p></div>
+  <div class="alert a-purple">🗣️ 모든 질문에 답을 작성해야 실험 과정 탭이 열립니다!</div>
+  <div class="card">
+    <h3>🌊 비유를 통해 실험 유의사항 생각하기</h3>
+    <div class="q-card">
+      <h4>Q1. "잔잔한 강가에 큰 돌을 던지면, 돌을 중심으로 물결이 퍼진다."</h4>
+      <p style="font-size:12.5px;color:var(--text2);margin-bottom:8px">→ 이 문장을 통해, 우리가 과망간산 칼륨을 떨어뜨릴 때 무엇을 주의해야 할까요?</p>
+      <textarea id="discuss-q1" placeholder="조원들과 토의한 후 답을 적어주세요..." oninput="checkDiscussComplete()"></textarea>
+    </div>
+    <div class="q-card">
+      <h4>Q2. "바람이 많이 불면 파도가 생긴다."</h4>
+      <p style="font-size:12.5px;color:var(--text2);margin-bottom:8px">→ 이 문장을 통해, 우리가 실험 시 무엇을 주의해야 할까요?</p>
+      <textarea id="discuss-q2" placeholder="조원들과 토의한 후 답을 적어주세요..." oninput="checkDiscussComplete()"></textarea>
+    </div>
+    <div class="q-card">
+      <h4>Q3. 위와 같은 것들을 주의하는 이유는?</h4>
+      <p style="font-size:12.5px;color:var(--text2);margin-bottom:8px">→ 이온의 이동을 일으키는 주된 원인이 어떤 힘이라는 것을 확인하기 위함인가요? 그 힘은 무엇인가요?</p>
+      <textarea id="discuss-q3" placeholder="조원들과 토의한 후 답을 적어주세요..." oninput="checkDiscussComplete()"></textarea>
+    </div>
+  </div>
+  <button class="btn-next" id="next3" disabled onclick="completeTab(3);showTab(4)">✅ 토의 완료 → 실험 과정으로</button>
+</section>
+
+<!-- TAB 4: 실험 과정 -->
+<section class="tab-pane" id="t4">
+  <div class="ph">
+    <h2>🧪 실험 과정 <span class="tag t-bl" style="font-size:12px;vertical-align:middle">학생용</span></h2>
+    <p>선생님이 기구와 시약을 세팅해두었어요. 아래 단계를 수행하면 됩니다!</p>
+  </div>
+  <div class="alert a-info">✅ <strong>학생이 할 일:</strong> 패트리접시 올리기 → 클립에 전선 연결 → 질산칼륨 붓기 → 전원 켜기 → 과망간산칼륨 떨어뜨리기</div>
+  <div class="disqualify-banner">
+    <h3>🚨 실험 즉시 정지 &amp; 자격 박탈</h3>
+    <ul>
+      <li>전원 장치의 <strong>전압·전류 다이얼</strong>을 학생이 임의로 조절하면 <strong>실험 즉시 정지, 자격 박탈</strong>됩니다.</li>
+      <li>전원 ON/OFF 버튼만 학생이 누를 수 있습니다. 다이얼은 절대 만지지 마세요!</li>
+    </ul>
+  </div>
+  <div class="card">
+    <h3>🗺️ 실험 셋업 구조</h3>
+    <svg viewBox="0 0 680 280" xmlns="http://www.w3.org/2000/svg" style="width:100%;border-radius:10px;margin-top:6px">
+      <rect width="680" height="280" fill="var(--card2)" rx="10"/>
+      <rect x="230" y="10" width="220" height="58" rx="8" fill="rgba(217,119,6,0.08)" stroke="#d97706" stroke-width="2"/>
+      <text x="340" y="32" text-anchor="middle" fill="#d97706" font-size="12" font-family="Noto Sans KR,sans-serif" font-weight="700">⚡ 전원 장치 (9V~12V)</text>
+      <text x="340" y="50" text-anchor="middle" fill="var(--text3)" font-size="10" font-family="Noto Sans KR,sans-serif">다이얼 조절 금지!</text>
+      <rect x="248" y="55" width="30" height="16" rx="3" fill="rgba(220,38,38,0.12)" stroke="#dc2626" stroke-width="1"/>
+      <text x="263" y="66" text-anchor="middle" fill="#dc2626" font-size="10" font-family="monospace" font-weight="bold">−</text>
+      <rect x="402" y="55" width="30" height="16" rx="3" fill="rgba(220,38,38,0.12)" stroke="#dc2626" stroke-width="1"/>
+      <text x="417" y="66" text-anchor="middle" fill="#dc2626" font-size="10" font-family="monospace" font-weight="bold">+</text>
+      <line x1="263" y1="71" x2="148" y2="155" stroke="#333" stroke-width="2.5" stroke-dasharray="6,3"/>
+      <text x="185" y="105" text-anchor="middle" fill="#333" font-size="10" font-family="Noto Sans KR,sans-serif" font-weight="600">검정 전선(−)</text>
+      <line x1="417" y1="71" x2="532" y2="155" stroke="#dc2626" stroke-width="2.5" stroke-dasharray="6,3"/>
+      <text x="495" y="105" text-anchor="middle" fill="#dc2626" font-size="10" font-family="Noto Sans KR,sans-serif" font-weight="600">빨강 전선(+)</text>
+      <rect x="80" y="225" width="520" height="30" rx="6" fill="#ffe4b5" stroke="#d97706" stroke-width="1.5"/>
+      <text x="340" y="243" text-anchor="middle" fill="#92400e" font-size="12" font-family="Noto Sans KR,sans-serif" font-weight="700">📄 극성 표시 종이 (바닥)</text>
+      <ellipse cx="340" cy="178" rx="210" ry="50" fill="rgba(37,99,235,0.04)" stroke="#2563eb" stroke-width="2" stroke-dasharray="7,3"/>
+      <text x="340" y="138" text-anchor="middle" fill="#2563eb" font-size="12" font-family="Noto Sans KR,sans-serif">투명 패트리접시</text>
+      <ellipse cx="340" cy="185" rx="185" ry="32" fill="rgba(22,163,74,0.06)" stroke="#16a34a" stroke-width="1.5" stroke-dasharray="4,3"/>
+      <text x="340" y="189" text-anchor="middle" fill="#16a34a" font-size="11.5" font-family="Noto Sans KR,sans-serif">KNO₃ 수용액</text>
+      <rect x="120" y="155" width="14" height="42" rx="2" fill="#888" stroke="#555" stroke-width="1.5"/>
+      <rect x="116" y="155" width="22" height="8" rx="2" fill="#999" stroke="#555" stroke-width="1"/>
+      <text x="127" y="210" text-anchor="middle" fill="#555" font-size="10" font-family="Noto Sans KR,sans-serif">클립</text>
+      <rect x="546" y="155" width="14" height="42" rx="2" fill="#888" stroke="#555" stroke-width="1.5"/>
+      <rect x="542" y="155" width="22" height="8" rx="2" fill="#999" stroke="#555" stroke-width="1"/>
+      <text x="553" y="210" text-anchor="middle" fill="#555" font-size="10" font-family="Noto Sans KR,sans-serif">클립</text>
+      <circle cx="340" cy="175" r="9" fill="#7c3aed" opacity="0.85"/>
+      <text x="340" y="152" text-anchor="middle" fill="#7c3aed" font-size="11" font-family="Noto Sans KR,sans-serif">KMnO₄ 1~2방울</text>
+      <defs><marker id="arp" markerWidth="6" markerHeight="6" refX="3" refY="3" orient="auto"><path d="M0,0 L6,3 L0,6 Z" fill="#7c3aed"/></marker></defs>
+      <line x1="340" y1="155" x2="340" y2="166" stroke="#7c3aed" stroke-width="1.5" marker-end="url(#arp)"/>
+      <text x="340" y="268" text-anchor="middle" fill="var(--text2)" font-size="11" font-family="Noto Sans KR,sans-serif">MnO₄⁻(음이온) → 양극(+) / K⁺(양이온) → 음극(-)</text>
+    </svg>
+  </div>
+  <div class="card">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+      <h3 style="margin-bottom:0">🚶 학생 실험 단계</h3>
+      <span id="step-count" style="font-size:13px;color:var(--text2)">0/5</span>
+    </div>
+    <div class="pb-wrap"><div class="pb" id="step-pb" style="width:0%"></div></div>
+    <div id="steps-list" style="margin-top:12px"></div>
+  </div>
+  <div class="alert a-warn">⚠️ 전선 연결·전압 조절은 선생님만 합니다. 전원 ON/OFF 버튼만 학생이 누릅니다!</div>
+</section>
+
+<!-- TAB 5: 타이머 -->
+<section class="tab-pane" id="t5">
+  <div class="ph"><h2>⏱️ 타이머</h2><p>스톱워치로 시간을 재고, 정해진 시점마다 사진을 찍으세요!</p></div>
+  <div class="card" style="text-align:center">
+    <h3 style="justify-content:center">스톱워치</h3>
+    <div class="timer-disp" id="timer-disp">00:00</div>
+    <div class="timer-ctrl">
+      <button class="btn btn-primary" onclick="timerStart()">▶ 시작</button>
+      <button class="btn btn-outline" onclick="timerPause()">⏸ 일시정지</button>
+      <button class="btn btn-outline" onclick="timerReset()">⏹ 초기화</button>
+    </div>
+  </div>
+  <div class="card">
+    <h3>📸 사진 촬영 체크리스트</h3>
+    <div class="alert a-info" style="margin-bottom:16px">💡 아래 시점마다 사진을 찍어두세요!</div>
+    <div id="photo-checklist"></div>
+  </div>
+</section>
+
+<!-- TAB 6: 이론 -->
+<section class="tab-pane" id="t6">
+  <div class="ph"><h2>📚 관련 이론</h2><p>이온의 이동 실험과 관련된 핵심 개념을 공부해봐요!</p></div>
+  <div class="g2">
+    <div class="card">
+      <div class="th-sec"><h4>⚡ 이온(Ion)이란?</h4><p>원자 또는 분자가 전자를 잃거나 얻어 전하를 띤 입자예요. 전자를 잃으면 <strong>양이온(+)</strong>, 전자를 얻으면 <strong>음이온(-)</strong>이 됩니다.</p></div>
+      <div class="th-sec"><h4>🔴 양이온 (Cation)</h4><p>전자를 잃어 +전하를 띠는 이온. 전기장에서 <strong style="color:var(--danger)">음극(−) 방향</strong>으로 이동해요.<br>예: K⁺, Na⁺, Cu²⁺</p></div>
+      <div class="th-sec"><h4>🔵 음이온 (Anion)</h4><p>전자를 얻어 −전하를 띠는 이온. 전기장에서 <strong style="color:var(--primary)">양극(+) 방향</strong>으로 이동해요.<br>예: MnO₄⁻, Cl⁻, NO₃⁻</p></div>
+    </div>
+    <div class="card">
+      <div class="th-sec"><h4>🟣 과망가니즈산 칼륨 (KMnO₄)</h4><p>물에 녹으면 <strong>K⁺</strong>(양이온)과 <strong>MnO₄⁻</strong>(음이온, 진보라색)으로 나뉩니다. 색이 있는 MnO₄⁻가 이동하므로 눈으로 방향을 확인할 수 있어요!</p></div>
+      <div class="th-sec"><h4>🧂 질산 칼륨 (KNO₃)</h4><p>이온이 이동할 수 있는 통로(전해질 용액) 역할을 해요. K⁺와 NO₃⁻로 이온화되어 전류가 흐를 수 있게 합니다.</p></div>
+      <div class="th-sec"><h4>⚡ 전기영동 (Electrophoresis)</h4><p>이온이 전기장에 의해 이동하는 현상이에요. 이 실험의 핵심 원리입니다!</p></div>
+    </div>
+  </div>
+</section>
+
+<!-- TAB 7: 시뮬레이션 -->
+<section class="tab-pane" id="t7">
+  <div class="ph"><h2>🖥️ 온라인 시뮬레이션</h2><p>실험 전후로 시뮬레이션으로 이온 이동을 확인해봐요!</p></div>
+  <a class="sim-banner" href="https://javalab.org/ko/ion_movement/" target="_blank" rel="noopener">
+    <div class="sim-ic">🔬</div>
+    <div class="sim-txt"><h3>이온의 이동 시뮬레이션 (javalab)</h3><p>javalab.org — 이온이 전기장에서 이동하는 과정을 직접 조작해볼 수 있어요!</p><p style="margin-top:6px"><span class="tag t-bl">새 탭에서 열림</span></p></div>
+    <div class="sim-arrow">↗</div>
+  </a>
+  <a class="sim-banner" href="https://scienceisjo.github.io/ionicmovement/" target="_blank" rel="noopener" style="border-color:#7c3aed;background:linear-gradient(135deg,rgba(139,92,246,0.08),rgba(37,99,235,0.06))">
+    <div class="sim-ic">🧪</div>
+    <div class="sim-txt"><h3 style="color:#7c3aed">이온의 이동 시뮬레이션 (승재쌤)</h3><p>승재쌤이 만든 시뮬레이션입니다!</p><p style="margin-top:6px"><span class="tag" style="background:rgba(139,92,246,0.12);color:#7c3aed">새 탭에서 열림</span></p></div>
+    <div class="sim-arrow" style="color:#7c3aed">↗</div>
+  </a>
+  <div class="card">
+    <h3>📝 시뮬레이션 관찰 메모</h3>
+    <p style="font-size:12px;color:var(--text3);margin-bottom:12px">여기 적은 내용은 보고서에 자동으로 반영됩니다.</p>
+    <div class="fr" style="align-items:flex-start"><label>예측한 방향</label><textarea id="sim-predict" placeholder="KMnO₄를 떨어뜨리면 보라색은 어느 방향으로 이동할 것 같나요?"></textarea></div>
+    <div class="fr" style="align-items:flex-start"><label>시뮬레이션 결과</label><textarea id="sim-result" placeholder="시뮬레이션에서 확인한 내용을 적어봐요..."></textarea></div>
+    <div class="fr" style="align-items:flex-start"><label>실험과 비교</label><textarea id="sim-compare" placeholder="실제 실험 결과와 다른 점은 없었나요?"></textarea></div>
+  </div>
+</section>
+
+<!-- TAB 8: 트러블슈팅 -->
+<section class="tab-pane" id="t8">
+  <div class="ph"><h2>🔧 트러블슈팅</h2><p>문제가 생겼나요? 먼저 여기서 해결책을 찾아봐요!</p></div>
+  <div class="alert a-err">⚡ 전기 관련 문제는 <strong>절대 혼자 해결하지 말고</strong> 즉시 선생님을 부르세요!</div>
+  <div id="faq-list"></div>
+</section>
+
+<!-- TAB 9: 결과 정리 -->
+<section class="tab-pane" id="t9">
+  <div class="ph"><h2>📊 결과 정리</h2><p>실험 결과를 조원들과 함께 토의하고 정리해요!</p></div>
+  <div class="discuss-banner">
+    <h3>💬 보고서 작성 전 필수! 조원 토의</h3>
+    <ul>
+      <li>보고서에 쓸 내용은 먼저 <strong>조원 모두가 함께 토의</strong>한 후 결정해요.</li>
+      <li>토의 후 <strong>보고서 기록 담당이 대표로 타이핑</strong>하되, 내용은 모두의 의견을 담아야 합니다.</li>
+      <li>관찰한 것 → 이유 설명 → 결론 순서로 토의하면 더 쉬워요.</li>
+    </ul>
+  </div>
+  <div class="card">
+    <h3>🔬 기본 정보</h3>
+    <div class="fr"><label>실험 날짜</label><input type="text" id="r-date" placeholder="예: 2025년 6월 12일"></div>
+    <div class="fr"><label>날씨/온도</label><input type="text" id="r-weather" placeholder="예: 맑음 / 22°C"></div>
+    <div class="fr"><label>조 이름</label><input type="text" id="r-group" placeholder="예: 3조"></div>
+  </div>
+  <div class="card">
+    <h3>📸 시간별 사진 기록</h3>
+    <div class="alert a-info" style="margin-bottom:14px">💡 각 슬롯을 클릭해서 사진을 첨부하세요.</div>
+    <div class="photo-grid" id="photo-grid"></div>
+  </div>
+  <div class="card">
+    <h3>🔬 이온 이동 관찰 정리</h3>
+    <table>
+      <thead><tr><th>이온 종류</th><th>전하</th><th>이동 방향</th><th>특이 사항</th></tr></thead>
+      <tbody id="result-table"></tbody>
+    </table>
+  </div>
+  <div class="card">
+    <h3>📝 탐구 문제</h3>
+    <div class="q-card">
+      <h4>Q1. MnO₄⁻는 어느 방향으로 이동했나요? 그 이유는 무엇인가요?</h4>
+      <textarea id="rq-1" placeholder="조원들과 토의한 후 답을 적어주세요..."></textarea>
+    </div>
+    <div class="q-card">
+      <h4>Q2. 전압을 높이면 이온의 이동 속도는 어떻게 변할까요?</h4>
+      <textarea id="rq-2" placeholder="조원들과 토의한 후 답을 적어주세요..."></textarea>
+    </div>
+    <div class="q-card">
+      <h4>Q3. 이 실험에서 KNO₃ 수용액은 어떤 역할을 할까요?</h4>
+      <textarea id="rq-3" placeholder="조원들과 토의한 후 답을 적어주세요..."></textarea>
+    </div>
+  </div>
+  <div class="card">
+    <h3>💡 결론 및 고찰 <span style="font-size:12px;font-weight:400;color:var(--text2)">(토의 후 작성)</span></h3>
+    <div class="alert a-purple" style="margin-bottom:14px">🗣️ 조원들이 먼저 이야기를 나눈 뒤, 합의된 내용을 입력해주세요!</div>
+    <div class="fr" style="align-items:flex-start"><label>이온 이동 방향<br><span style="font-size:11px;color:var(--text2)">(토의 결과)</span></label><textarea id="r-direction" placeholder="MnO₄⁻(음이온)은 어느 방향으로 이동했나요?"></textarea></div>
+    <div class="fr" style="align-items:flex-start"><label>결론<br><span style="font-size:11px;color:var(--text2)">(토의 결과)</span></label><textarea id="r-conclusion" placeholder="이 실험을 통해 알게 된 것은..." style="min-height:100px"></textarea></div>
+    <div class="fr" style="align-items:flex-start"><label>오차 및 한계<br><span style="font-size:11px;color:var(--text2)">(토의 결과)</span></label><textarea id="r-error" placeholder="실험의 아쉬운 점이나 오류 가능성은..."></textarea></div>
+    <div class="fr" style="align-items:flex-start"><label>더 알고 싶은 점<br><span style="font-size:11px;color:var(--text2)">(토의 결과)</span></label><textarea id="r-more" placeholder="추가로 탐구하고 싶은 점은..."></textarea></div>
+  </div>
+  <div class="card">
+    <h3>🔍 시뮬레이션 vs 실제 실험 비교 분석</h3>
+    <div class="alert a-err" style="margin-bottom:14px">⚠️ 이 부분은 반드시 작성해야 합니다!</div>
+    <div class="fr" style="align-items:flex-start"><label>차이가 난 이유<br><span style="font-size:11px;color:var(--text2)">(토의 결과)</span></label><textarea id="r-sim-diff" placeholder="시뮬레이션과 실제 실험이 차이가 났다면, 그 이유가 무엇이라고 생각하나요?"></textarea></div>
+    <div class="fr" style="align-items:flex-start"><label>오차를 줄이려면?<br><span style="font-size:11px;color:var(--text2)">(토의 결과)</span></label><textarea id="r-sim-reduce" placeholder="이러한 오차를 줄이기 위해서는 어떻게 해야 할까요?"></textarea></div>
+    <div class="fr" style="align-items:flex-start"><label>오차를 줄이려면?<br><span style="font-size:11px;color:var(--primary)">(AI 활용 답변)</span></label><textarea id="r-sim-ai" placeholder="위 질문을 인공지능(AI)에게도 물어보세요! AI가 제시한 답변을 여기에 적어주세요."></textarea></div>
+  </div>
+  <button class="btn-next" onclick="completeTab(9);showTab(10)">✅ 결과 정리 완료 → 뒷정리로</button>
+</section>
+
+<!-- TAB 10: 뒷정리 -->
+<section class="tab-pane" id="t10">
+  <div class="ph"><h2>🗑️ 폐기물 처리 &amp; 뒷정리</h2><p>올바른 방법으로 정리해요. 완료한 항목을 클릭하세요!</p></div>
+  <div class="alert a-err">⚠️ 화학 시약은 절대 일반 싱크대에 버리지 마세요!</div>
+  <div class="g2">
+    <div>
+      <div class="card"><h3>⚡ 전기 장비 정리</h3><div id="cleanup-electric"></div></div>
+      <div class="card"><h3>🧪 시약 폐기</h3><div id="cleanup-reagent"></div></div>
+    </div>
+    <div>
+      <div class="card"><h3>🧹 기구 세척</h3><div id="cleanup-wash"></div></div>
+      <div class="card"><h3>🏫 실험대 정리</h3><div id="cleanup-desk"></div></div>
+    </div>
+  </div>
+  <div class="card">
+    <h3>♻️ 폐기물 분류 가이드</h3>
+    <div class="g3">
+      <div class="alert a-err" style="flex-direction:column;gap:6px;margin:0"><strong>🔴 화학 폐액통</strong><span style="font-size:12px">KNO₃ 수용액, KMnO₄ 혼합액, 세척 폐수</span></div>
+      <div class="alert a-warn" style="flex-direction:column;gap:6px;margin:0"><strong>🟡 교탁 옆 쓰레기통</strong><span style="font-size:12px">사용한 비닐장갑</span></div>
+      <div class="alert a-ok" style="flex-direction:column;gap:6px;margin:0"><strong>🟢 일반 세척</strong><span style="font-size:12px">패트리접시, 클립 → 수돗물로 헹굼</span></div>
+    </div>
+  </div>
+  <button class="btn-next" id="next10" disabled onclick="completeTab(10);showTab(11)">✅ 뒷정리 완료 → 보고서로</button>
+</section>
+
+<!-- TAB 11: 보고서 -->
+<section class="tab-pane" id="t11">
+  <div class="ph"><h2>📄 보고서</h2><p>입력한 데이터를 바탕으로 보고서를 미리보기하고 저장할 수 있습니다.</p></div>
+  <div style="display:flex;gap:10px;margin-bottom:20px;flex-wrap:wrap" class="no-print">
+    <button class="btn btn-primary" onclick="savePDF()">📥 이미지 PDF 저장</button>
+    <button class="btn btn-outline" onclick="printReport()">🖨️ 인쇄 / HTML PDF</button>
+    <button class="btn btn-outline" onclick="buildReport()">🔄 보고서 새로고침</button>
+  </div>
+  <div class="alert a-info no-print" style="margin-bottom:16px">
+    💡 <strong>📥 이미지 PDF 저장</strong> — 보고서를 그대로 이미지로 찍어 PDF로 저장합니다. (사진 포함)<br>
+    &nbsp;&nbsp;&nbsp;&nbsp;<strong>🖨️ 인쇄 / HTML PDF</strong> — 브라우저 인쇄 창을 엽니다.
+  </div>
+  <div class="rp" id="report-preview">
+    <h2>⚗️ 이온의 이동 확인 실험 보고서</h2>
+    <p style="text-align:center;color:#888;font-size:12px;margin-bottom:20px">작성일: <span id="rp-date">-</span></p>
+    <div id="rp-body"><p style="color:#999;text-align:center;padding:20px">보고서 새로고침 버튼을 눌러 데이터를 불러오세요.</p></div>
+  </div>
+  <div class="alert a-ok" style="margin-top:20px">🎉 모든 실험 과정이 완료되었습니다! 수고하셨어요!</div>
+</section>
+
+</main>
+
+<script>
+// PAGE CLOSE PREVENTION
+window.addEventListener('beforeunload',function(e){e.preventDefault();e.returnValue='';});
+
+// DATA
+const safetyData={
+  personal:[
+    {t:'시약을 다루는 사람은 1회용 비닐장갑 착용',s:'과망간산칼륨·질산칼륨이 피부에 직접 닿지 않도록!'},
+    {t:'비닐장갑은 사용 후 거꾸로 뒤집어서 쓰레기통에 버리기',s:'오염면이 안쪽으로 가도록 뒤집어서 폐기'},
+    {t:'긴 머리 묶기',s:'실험 기구나 용액에 닿지 않도록'},
+  ],
+  electric:[
+    {t:'전원 장치가 꺼져 있는지 확인',s:'실험 준비 중에는 절대 전원을 켜면 안돼요'},
+    {t:'전선이 수용액에 닿아있지 않은지 확인',s:'감전 위험! 전선과 수용액이 분리되어 있어야 해요'},
+    {t:'손이 젖은 상태로 전원 만지지 않기',s:'반드시 손을 닦고 전원 버튼을 누르세요'},
+    {t:'전압·전류 다이얼 절대 조절 금지',s:'🚨 학생이 다이얼을 만지면 실험 즉시 정지 & 자격 박탈!'},
+  ],
+  chemical:[
+    {t:'과망간산칼륨(KMnO₄) 취급 주의',s:'강한 산화제, 피부·옷에 묻으면 보라색으로 변색'},
+    {t:'질산 칼륨(KNO₃) 취급 주의',s:'눈에 묻으면: 몇 분간 물로 조심해서 씻으시오. 가능하면 콘택트렌즈를 제거하시오. 계속 씻으시오.'},
+    {t:'용액 버릴 때 폐액통 사용',s:'절대 일반 싱크대에 버리면 안 됩니다'},
+  ],
+  emergency:[
+    {t:'소화기 위치 확인',s:'실험실 내 소화기 위치 미리 확인'},
+    {t:'눈 세안기 위치 확인',s:'용액이 눈에 들어가면 바로 세안기로 씻어요'},
+  ]
+};
+const matsEquip=[
+  {t:'투명 패트리접시',s:'선생님 세팅 완료 ✓'},
+  {t:'전원 장치 (9V~12V)',s:'선생님 세팅 완료 ✓'},
+  {t:'집게 전선 (빨강+, 검정-)',s:'선생님 세팅 완료 ✓'},
+  {t:'클립 2개 (패트리접시에 꽂을 전극)',s:'선생님 세팅 완료 ✓'},
+  {t:'극성 표시 종이 (패트리접시 아래)',s:'선생님 세팅 완료 ✓ (+극, -극 표시)'},
+  {t:'스포이트',s:'선생님 세팅 완료 ✓'},
+];
+const matsReagent=[
+  {t:'질산 칼륨(KNO₃) 수용액 (0.1M)',s:'이온 이동 통로 역할 — 선생님 준비 완료'},
+  {t:'과망가니즈산 칼륨(KMnO₄) 수용액',s:'이온 이동 관찰용 — 선생님 준비 완료'},
+  {t:'폐액통',s:'사용한 시약 수거용'},
+];
+
+function getRoles(){
+  if(members.length>=5){
+    return [
+      {em:'🔬',ti:'실험 조작자',de:'① 패트리접시를 극성 표시 종이 위에 올린다\n② 클립에 전선을 연결한다 (+극 클립 → 빨강 전선)\n③ KNO₃ 수용액을 스포이트로 붓는다\n④ 선생님 확인 후 전원 ON/OFF 버튼을 누른다',multi:false},
+      {em:'🧪',ti:'시약 투입 담당',de:'① KMnO₄ 용액을 스포이트로 준비한다\n② 수면에 최대한 가까이에서 1~2방울 떨어뜨린다\n③ 투입 시점을 타이머 담당에게 알린다',multi:false},
+      {em:'👁️📸',ti:'관찰 기록 & 사진 담당',de:'① 이온 이동 방향·색 변화를 실시간 관찰·기록한다\n② 정해진 시점(직후, 1분, 3분, 5분, 10분, 최종)마다 사진 촬영\n③ 특이사항을 메모한다',multi:false},
+      {em:'📝',ti:'보고서 기록 담당',de:'① 조원 토의 내용을 결과 정리 탭에 타이핑한다\n② 혼자 결정하지 않고 조원 합의 내용만 기록한다\n③ 보고서 최종 확인 후 제출한다',multi:false},
+      {em:'🛡️',ti:'안전 관리자 (2명)',de:'① 안전 수칙 준수를 수시로 확인한다\n② 전압·전류 다이얼을 아무도 만지지 않는지 감시한다\n③ 비상시 즉시 선생님을 호출한다\n④ 폐기물 분류를 확인한다',multi:true},
+    ];
+  }
+  return [
+    {em:'🔬',ti:'실험 조작자',de:'① 패트리접시를 극성 표시 종이 위에 올린다\n② 클립에 전선을 연결한다 (+극 클립 → 빨강 전선)\n③ KNO₃ 수용액을 스포이트로 붓는다\n④ 선생님 확인 후 전원 ON/OFF 버튼을 누른다\n⑤ KMnO₄ 용액을 수면 가까이에서 1~2방울 떨어뜨린다',multi:false},
+    {em:'👁️📸',ti:'관찰 기록 & 사진 담당',de:'① 이온 이동 방향·색 변화를 실시간 관찰·기록한다\n② 정해진 시점(직후, 1분, 3분, 5분, 10분, 최종)마다 사진 촬영\n③ 특이사항을 메모한다',multi:false},
+    {em:'📝',ti:'보고서 기록 담당',de:'① 조원 토의 내용을 결과 정리 탭에 타이핑한다\n② 혼자 결정하지 않고 조원 합의 내용만 기록한다\n③ 보고서 최종 확인 후 제출한다',multi:false},
+    {em:'🛡️',ti:'안전 관리자',de:'① 안전 수칙 준수를 수시로 확인한다\n② 전압·전류 다이얼을 아무도 만지지 않는지 감시한다\n③ 비상시 즉시 선생님을 호출한다\n④ 폐기물 분류를 확인한다',multi:false},
+  ];
+}
+
+const steps=[
+  {h:'① 패트리접시 위치 잡기',p:'바닥에 있는 <strong>극성 표시 종이</strong>를 확인하세요. 종이의 +극, -극 표시에 클립이 각각 올라가도록 투명 패트리접시를 올려놓아요. <strong>(+, -가 어느 클립에 위치하건 상관 없음)</strong>',tip:'💡 패트리접시가 종이의 극 표시와 정확히 일치해야 해요! 삐뚤어지지 않게 올려요.',tipType:'blue'},
+  {h:'② 클립에 전선 연결하기',p:'패트리접시에 꽂혀 있는 클립에 집게 전선을 연결하세요. <strong>⚠️ (+)극 위에 있는 클립은 반드시 전원장치의 (+)극(빨강 전선)에 연결해야 합니다!</strong> (-)극도 마찬가지로 검정 전선에 연결하세요.',tip:'⚠️ 극성을 반대로 연결하면 이온이 반대 방향으로 이동합니다! +극 클립 → 빨강 전선(+), -극 클립 → 검정 전선(-) 꼭 확인!',tipType:'warn'},
+  {h:'③ 질산 칼륨(KNO₃) 수용액 붓기',p:'선생님이 준비해둔 <strong>질산 칼륨 수용액을 스포이트로</strong> 패트리접시 안에 고르게 부어요. <strong>바닥이 보이지 않을 정도로</strong> 충분히 채우되, 클립이 잠길 정도여야 이온이 이동할 수 있어요.',tip:'⚠️ 수용액이 패트리접시 밖으로 넘치지 않도록 조금씩 부어요!',tipType:'warn'},
+  {h:'④ 전원 장치 켜기',p:'전선이 올바르게 연결되어 있는지 선생님께 확인을 받은 후, <strong>전원 장치의 전원 버튼을 켜세요.</strong> 전원이 켜지면 타이머를 시작하세요.',tip:'⚠️ 전원을 켜기 전에 손이 건조한지 꼭 확인! 전선을 만지거나 다이얼을 조정하면 안 돼요. <strong>다이얼 조작 시 실험 즉시 정지 & 자격 박탈!</strong>',tipType:'warn'},
+  {h:'⑤ 과망간산 칼륨(KMnO₄) 용액 떨어뜨리기',p:'종이에 표시된 <strong>중앙 점 위치</strong>에 스포이트로 KMnO₄ 용액을 <strong>1~2방울</strong>만 떨어뜨리세요. <strong>수면에 닿지 않는 선에서 최대한 가까이</strong>에서 떨어뜨리세요!',tip:'⚠️ 강하게 떨어뜨리면 바깥으로 튈 수 있고, 이온의 이동에 의한 영향보다 액체(유체)의 흐름에 의한 영향을 더 강하게 받게 되어 실험 결과가 불명확해집니다. 1~2방울을 최대한 가까이에서 살짝!',tipType:'warn'},
+];
+const photoSlots=[{label:'실험 시작 직후'},{label:'1분 경과'},{label:'3분 경과'},{label:'5분 경과'},{label:'10분 경과'},{label:'최종 결과'}];
+const photoCheckList=['실험 시작 직후 — KMnO₄ 떨어뜨린 직후','1분 경과','3분 경과','5분 경과','10분 경과 (또는 실험 종료 시)','최종 결과 전체 사진'];
+const faqs=[
+  {q:'보라색이 전혀 이동하지 않아요!',a:'① 전원이 켜져 있는지 확인하세요. ② 전선이 클립에 잘 닿아 있는지 확인하세요. ③ 질산칼륨 수용액이 클립을 잠기게 할 정도인지 확인하세요. (패트리접시가 넘칠 정도로는 하면 안 됩니다.) ④ 선생님을 불러주세요!'},
+  {q:'보라색이 예상과 반대 방향으로 가요!',a:'① 어느 쪽이 (+)극이고 (-)극인지를 확인하세요. 빨간 전선(+)이 (+)극 표시 위 클립에 연결되어 있어야 합니다. ② 모든 수용액을 폐수통에 버리고 실험을 다시 실시하세요.'},
+  {q:'보라색이 양쪽으로 다 퍼지는 것 같아요!',a:'우리 1학년 때 배웠던 입자의 확산 기억하나요? 입자들은 스스로 운동하며 사방으로 퍼지려고 합니다. 용액을 수면과 최대한 가까이에서 떨어뜨려 봅시다!'},
+  {q:'용액이 패트리접시 밖으로 넘쳤어요!',a:'당황하지 말고 선생님을 부르세요! 과망간산칼륨 용액이 실험대에 묻으면 보라색으로 착색될 수 있어요. 혼자 닦으려 하지 말고 선생님의 안내에 따라 처리하세요.'},
+  {q:'이동 속도가 너무 느려요!',a:'① 전압이 충분한지 선생님께 확인 요청하세요. ② 수용액이 충분한지 확인하세요. ③ 5~10분 더 기다려보세요.'},
+  {q:'기포가 생겼어요!',a:'전극에서 전기 분해가 일어나고 있는 것입니다. 전압이 너무 높을 수 있어요. 선생님께 확인해주세요.'},
+];
+const cleanupElectric=[
+  {ic:'🔌',h:'전원 장치 전원 OFF',p:'실험이 끝나면 전원 장치 전원을 꺼요. 선생님 확인 후 끄세요.'},
+  {ic:'🪛',h:'집게 전선을 클립에서만 분리',p:'집게 전선을 클립에서만 분리하고, 전원장치에는 그대로 연결해둬요.'},
+];
+const cleanupReagent=[
+  {ic:'🧪',h:'폐액 수거',p:'패트리접시 안의 용액을 선생님이 준비한 폐액통에 버려요.'},
+  {ic:'🗑️',h:'비닐장갑 폐기',p:'사용한 비닐장갑은 뒤집어서 교탁 옆 쓰레기통에 넣어요.'},
+];
+const cleanupWash=[
+  {ic:'💧',h:'패트리접시·클립 헹굼',p:'수돗물로 2~3회 헹구고, 헹군 물도 폐액통에 버려요.'},
+  {ic:'🧻',h:'물기 제거 후 정리',p:'물기를 닦고 원래 자리에 정리해요.'},
+];
+const cleanupDesk=[
+  {ic:'🧹',h:'실험대 닦기',p:'물에 적신 종이 타월로 실험대를 닦아요. 보라색 흔적이 남지 않도록!'},
+  {ic:'✅',h:'선생님 확인',p:'정리가 완료되면 선생님께 확인을 받아요.'},
+];
+
+// STATE
+let members=['','','',''];
+let timerInterval=null,timerSec=0,timerRunning=false;
+let cleanupState={},safetyChecked={},matChecked={},stepsDone={},photoCheckDone={},photoImages={};
+let tabCompleted={};
+const TOTAL_TABS=12;
+let resultRows=[
+  {ion:'MnO₄⁻',charge:'−',dir:'',note:'보라색'},
+  {ion:'K⁺',charge:'+',dir:'',note:'무색'}
+];
+
+function init(){
+  buildSafety();buildMaterials();buildRoles();buildSteps();
+  buildPhotoChecklist();buildPhotoGrid();buildFAQ();buildCleanup();buildResultTable();
+  buildMemberInputs();updateNavLocks();
+}
+
+// TAB LOCKING
+function isTabUnlocked(n){
+  if(n===0) return true;
+  if(n===1) return !!tabCompleted[0];
+  if(n===2) return !!tabCompleted[1];
+  if(n===3) return !!tabCompleted[2];
+  if(n===4) return !!tabCompleted[3];
+  if(n>=5 && n<=8) return !!tabCompleted[3];
+  if(n===9) return !!tabCompleted[3];
+  if(n===10) return !!tabCompleted[9];
+  if(n===11) return !!tabCompleted[10];
+  return false;
+}
+function updateNavLocks(){
+  for(let i=0;i<TOTAL_TABS;i++){
+    const btn=document.getElementById('nb'+i);if(!btn) continue;
+    const unlocked=isTabUnlocked(i);
+    btn.classList.toggle('locked',!unlocked);
+    btn.classList.toggle('done-tab',!!tabCompleted[i]);
+  }
+}
+function tryTab(n){if(!isTabUnlocked(n)) return;showTab(n);}
+function showTab(n){
+  if(!isTabUnlocked(n)) return;
+  document.querySelectorAll('.tab-pane').forEach((p,i)=>p.classList.toggle('active',i===n));
+  document.querySelectorAll('.nav-btn').forEach((b,i)=>{b.classList.toggle('active',i===n);});
+  updateNavLocks();
+  if(n===11) buildReport();
+}
+function completeTab(n){tabCompleted[n]=true;updateNavLocks();}
+
+// SAFETY
+function buildSafety(){
+  [{id:'safety-personal',items:safetyData.personal},{id:'safety-electric',items:safetyData.electric},{id:'safety-chemical',items:safetyData.chemical},{id:'safety-emergency',items:safetyData.emergency}]
+  .forEach(sec=>{
+    const el=document.getElementById(sec.id);el.innerHTML='';
+    sec.items.forEach((item,i)=>{
+      const k=sec.id+'_'+i,div=document.createElement('div');div.className='cl-item';
+      div.onclick=()=>{safetyChecked[k]=!safetyChecked[k];div.classList.toggle('chk',safetyChecked[k]);updateSafetyProgress();};
+      div.innerHTML=`<div class="cb"></div><div><div class="cl-text">${item.t}</div><div class="cl-sub">${item.s}</div></div>`;
+      el.appendChild(div);
+    });
+  });
+  updateSafetyProgress();
+}
+function updateSafetyProgress(){
+  const total=Object.values(safetyData).reduce((a,b)=>a+b.length,0);
+  const done=Object.values(safetyChecked).filter(Boolean).length;
+  document.getElementById('safety-pb').style.width=(done/total*100)+'%';
+  document.getElementById('safety-count').textContent=done+' / '+total;
+  document.getElementById('next0').disabled=done<total;
+}
+
+// MATERIALS
+function buildMaterials(){
+  function mk(id,items){const el=document.getElementById(id);el.innerHTML='';items.forEach((item,i)=>{const k=id+'_'+i,div=document.createElement('div');div.className='cl-item';div.onclick=()=>{matChecked[k]=!matChecked[k];div.classList.toggle('chk',matChecked[k]);updateMatProgress();};div.innerHTML=`<div class="cb"></div><div><div class="cl-text">${item.t}</div><div class="cl-sub">${item.s}</div></div>`;el.appendChild(div);});}
+  mk('mat-equip',matsEquip);mk('mat-reagent',matsReagent);updateMatProgress();
+}
+function updateMatProgress(){
+  const total=matsEquip.length+matsReagent.length;const done=Object.values(matChecked).filter(Boolean).length;
+  document.getElementById('mat-pb').style.width=(done/total*100)+'%';
+  document.getElementById('mat-count').textContent=done+' / '+total;
+  document.getElementById('next1').disabled=done<total;
+}
+
+// MEMBERS
+function addMember(){if(members.length>=8)return;members.push('');rebuildAll();}
+function removeMember(){if(members.length<=2)return;members.pop();rebuildAll();}
+function rebuildAll(){buildMemberInputs();buildRoles();updateRoleOptions();}
+function buildMemberInputs(){
+  const el=document.getElementById('member-inputs');el.innerHTML='';
+  members.forEach((m,i)=>{const row=document.createElement('div');row.className='mem-row';row.innerHTML=`<div class="mem-num">${i+1}</div><input type="text" placeholder="조원 ${i+1} 이름" value="${m}" oninput="members[${i}]=this.value;updateRoleOptions()">`;el.appendChild(row);});
+  document.getElementById('member-count-display').textContent=members.length;
+  document.getElementById('remove-member-btn').style.display=members.length>2?'inline-flex':'none';
+}
+
+// ROLES
+function buildRoles(){
+  const el=document.getElementById('roles-grid');el.innerHTML='';
+  const curRoles=getRoles();
+  curRoles.forEach((r,ri)=>{
+    const card=document.createElement('div');card.className='role-card';card.id='role-card-'+ri;
+    const descHtml=r.de.split('\n').map(l=>`<div style="font-size:12px;color:var(--text2);line-height:1.6;padding:1px 0">${l}</div>`).join('');
+    let selectHtml;
+    if(r.multi){
+      selectHtml=`<select class="role-sel" id="role-sel-${ri}-0" onchange="updateRoleCard()" style="margin-bottom:6px"><option value="">-- 안전관리자 1 --</option>${members.map((m,i)=>`<option value="${i}">${m||'조원 '+(i+1)}</option>`).join('')}</select>
+      <select class="role-sel" id="role-sel-${ri}-1" onchange="updateRoleCard()"><option value="">-- 안전관리자 2 --</option>${members.map((m,i)=>`<option value="${i}">${m||'조원 '+(i+1)}</option>`).join('')}</select>
+      <div class="role-multi">👥 5명 이상 조: 안전관리자 2명 배정</div>`;
+    }else{
+      selectHtml=`<select class="role-sel" id="role-sel-${ri}" onchange="updateRoleCard()"><option value="">-- 조원 선택 --</option>${members.map((m,i)=>`<option value="${i}">${m||'조원 '+(i+1)}</option>`).join('')}</select>`;
+    }
+    card.innerHTML=`<div class="role-em">${r.em}</div><div class="role-ti">${r.ti}</div><div style="margin:6px 0 12px">${descHtml}</div>${selectHtml}`;
+    el.appendChild(card);
+  });
+}
+function updateRoleOptions(){
+  const curRoles=getRoles();
+  curRoles.forEach((r,ri)=>{
+    if(r.multi){
+      [0,1].forEach(si=>{const sel=document.getElementById('role-sel-'+ri+'-'+si);if(!sel)return;const cur=sel.value;const lbl=si===0?'안전관리자 1':'안전관리자 2';sel.innerHTML=`<option value="">-- ${lbl} --</option>${members.map((m,i)=>`<option value="${i}" ${cur==i?'selected':''}>${m||'조원 '+(i+1)}</option>`).join('')}`;});
+    }else{const sel=document.getElementById('role-sel-'+ri);if(!sel)return;const cur=sel.value;sel.innerHTML=`<option value="">-- 조원 선택 --</option>${members.map((m,i)=>`<option value="${i}" ${cur==i?'selected':''}>${m||'조원 '+(i+1)}</option>`).join('')}`;}
+  });
+  updateRoleCard();
+}
+function updateRoleCard(){
+  const curRoles=getRoles();let allFilled=true;const allNames=members.filter(m=>m.trim()).length>=2;
+  curRoles.forEach((r,ri)=>{
+    const cardEl=document.getElementById('role-card-'+ri);
+    if(r.multi){const s0=document.getElementById('role-sel-'+ri+'-0'),s1=document.getElementById('role-sel-'+ri+'-1');const f=s0&&s0.value!==''&&s1&&s1.value!=='';if(cardEl)cardEl.classList.toggle('assigned',f);if(!f)allFilled=false;}
+    else{const s=document.getElementById('role-sel-'+ri);const f=s&&s.value!=='';if(cardEl)cardEl.classList.toggle('assigned',f);if(!f)allFilled=false;}
+  });
+  document.getElementById('next2').disabled=!(allFilled&&allNames);
+}
+
+// DISCUSSION
+function checkDiscussComplete(){
+  const q1=(document.getElementById('discuss-q1').value||'').trim();
+  const q2=(document.getElementById('discuss-q2').value||'').trim();
+  const q3=(document.getElementById('discuss-q3').value||'').trim();
+  document.getElementById('next3').disabled=!(q1&&q2&&q3);
+}
+
+// STEPS
+function buildSteps(){
+  const el=document.getElementById('steps-list');el.innerHTML='';
+  steps.forEach((s,i)=>{
+    const div=document.createElement('div');div.className='step-item';div.id='step-'+i;
+    const tip=s.tip?`<div class="${s.tipType==='warn'?'tip':'tip-blue'}">${s.tip}</div>`:'';
+    div.innerHTML=`<div class="step-num">${i+1}</div><div class="step-body"><h4>${s.h}</h4><p>${s.p}</p>${tip}</div><button class="step-ck" onclick="toggleStep(${i})">완료</button>`;
+    el.appendChild(div);
+  });updateStepProgress();
+}
+function toggleStep(i){stepsDone[i]=!stepsDone[i];document.getElementById('step-'+i).classList.toggle('done',stepsDone[i]);updateStepProgress();}
+function updateStepProgress(){const done=Object.values(stepsDone).filter(Boolean).length;document.getElementById('step-pb').style.width=(done/steps.length*100)+'%';document.getElementById('step-count').textContent=done+' / '+steps.length;}
+
+// TIMER
+function fmt(s){return String(Math.floor(s/60)).padStart(2,'0')+':'+String(s%60).padStart(2,'0');}
+function timerStart(){if(timerRunning)return;timerRunning=true;timerInterval=setInterval(()=>{timerSec++;document.getElementById('timer-disp').textContent=fmt(timerSec);},1000);}
+function timerPause(){if(!timerRunning)return;timerRunning=false;clearInterval(timerInterval);}
+function timerReset(){timerPause();timerSec=0;document.getElementById('timer-disp').textContent='00:00';}
+
+// PHOTO
+function buildPhotoChecklist(){const el=document.getElementById('photo-checklist');if(!el)return;el.innerHTML='';photoCheckList.forEach((lbl,i)=>{const div=document.createElement('div');div.className='cl-item';div.onclick=()=>{photoCheckDone[i]=!photoCheckDone[i];div.classList.toggle('chk',photoCheckDone[i]);};div.innerHTML=`<div class="cb"></div><div><div class="cl-text">📸 ${lbl}</div></div>`;el.appendChild(div);});}
+function buildPhotoGrid(){const el=document.getElementById('photo-grid');if(!el)return;el.innerHTML='';photoSlots.forEach((slot,i)=>{const w=document.createElement('div');w.className='photo-wrap';const sd=document.createElement('div');sd.className='photo-slot'+(photoImages[i]?' has-img':'');sd.innerHTML=`<input type="file" accept="image/*" id="pfile-${i}" onchange="loadPhoto(${i},this)">${photoImages[i]?`<img src="${photoImages[i]}" alt="">`:'<div class="ps-ic">📷</div>'}<div class="ps-lbl">${slot.label}<br><span style="font-size:10px;color:var(--text3)">클릭해서 사진 추가</span></div>`;sd.onclick=e=>{if(e.target.tagName!=='INPUT')document.getElementById('pfile-'+i).click();};const c=document.createElement('input');c.type='text';c.className='photo-cap';c.placeholder=slot.label+' 메모';c.id='pcap-'+i;w.appendChild(sd);w.appendChild(c);el.appendChild(w);});}
+function loadPhoto(i,input){if(!input.files||!input.files[0])return;const r=new FileReader();r.onload=e=>{photoImages[i]=e.target.result;buildPhotoGrid();};r.readAsDataURL(input.files[0]);}
+
+// FAQ
+function buildFAQ(){const el=document.getElementById('faq-list');el.innerHTML='';faqs.forEach(f=>{const d=document.createElement('div');d.className='acc-item';d.innerHTML=`<div class="acc-hd" onclick="this.parentElement.classList.toggle('open')"><span>❓ ${f.q}</span><span class="acc-ar">▼</span></div><div class="acc-body">✅ ${f.a}</div>`;el.appendChild(d);});}
+
+// CLEANUP
+function buildCleanup(){
+  function mk(id,items){const el=document.getElementById(id);el.innerHTML='';items.forEach((s,i)=>{const k=id+'_'+i,d=document.createElement('div');d.className='cl-step';d.onclick=()=>{cleanupState[k]=!cleanupState[k];d.classList.toggle('done',cleanupState[k]);checkCleanupDone();};d.innerHTML=`<div class="cls-ic">${s.ic}</div><div class="cls-body"><h4>${s.h}</h4><p>${s.p}</p></div>`;el.appendChild(d);});}
+  mk('cleanup-electric',cleanupElectric);mk('cleanup-reagent',cleanupReagent);mk('cleanup-wash',cleanupWash);mk('cleanup-desk',cleanupDesk);
+}
+function checkCleanupDone(){const total=cleanupElectric.length+cleanupReagent.length+cleanupWash.length+cleanupDesk.length;document.getElementById('next10').disabled=Object.values(cleanupState).filter(Boolean).length<total;}
+
+// RESULT TABLE
+function buildResultTable(){
+  const tb=document.getElementById('result-table');tb.innerHTML='';
+  resultRows.forEach((r,i)=>{
+    const tr=document.createElement('tr');
+    tr.innerHTML=`<td style="font-family:'Nanum Gothic Coding',monospace;font-weight:700">${r.ion}</td><td style="font-family:'Nanum Gothic Coding',monospace;font-weight:700">${r.charge}</td><td><input type="text" value="${r.dir}" placeholder="양극(+)/음극(-)" oninput="resultRows[${i}].dir=this.value" style="width:100px"></td><td><input type="text" value="${r.note}" placeholder="특이사항" oninput="resultRows[${i}].note=this.value" style="width:140px"></td>`;
+    tb.appendChild(tr);
+  });
+}
+
+// REPORT BUILD
+function buildReport(){
+  document.getElementById('rp-date').textContent=document.getElementById('r-date').value||new Date().toLocaleDateString('ko-KR');
+  const v=id=>(document.getElementById(id)||{}).value||'-';
+  const curRoles=getRoles();
+  let roleInfo='';curRoles.forEach((r,ri)=>{
+    if(r.multi){const s0=document.getElementById('role-sel-'+ri+'-0'),s1=document.getElementById('role-sel-'+ri+'-1');const n0=s0&&s0.value!==''?members[parseInt(s0.value)]:'미정';const n1=s1&&s1.value!==''?members[parseInt(s1.value)]:'미정';roleInfo+=`<tr><td>${r.ti}</td><td>${n0}, ${n1}</td></tr>`;}
+    else{const sel=document.getElementById('role-sel-'+ri);const mIdx=sel?parseInt(sel.value):-1;roleInfo+=`<tr><td>${r.ti}</td><td>${mIdx>=0&&members[mIdx]?members[mIdx]:'미정'}</td></tr>`;}
+  });
+  const resRows=resultRows.map(r=>`<tr><td>${r.ion}</td><td>${r.charge}</td><td>${r.dir||'-'}</td><td>${r.note||'-'}</td></tr>`).join('');
+  let ph='<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin:10px 0">';
+  photoSlots.forEach((slot,i)=>{const cap=(document.getElementById('pcap-'+i)||{}).value||slot.label;if(photoImages[i])ph+=`<div style="border:1px solid #ddd;border-radius:6px;overflow:hidden"><img src="${photoImages[i]}" style="width:100%;aspect-ratio:4/3;object-fit:cover;display:block"><div style="padding:5px;font-size:11px;color:#555;text-align:center">${cap}</div></div>`;else ph+=`<div style="border:2px dashed #ccc;border-radius:8px;padding:16px;text-align:center;color:#aaa;font-size:12px;background:#fafafa"><div style="font-size:20px">📷</div><div style="font-size:11px;margin-top:3px">${slot.label}</div><div style="font-size:10px;color:#bbb">(사진 없음)</div></div>`;});ph+='</div>';
+  document.getElementById('rp-body').innerHTML=`
+  <h3>📋 기본 정보</h3>
+  <table><thead><tr><th>항목</th><th>내용</th></tr></thead><tbody>
+  <tr><td>실험명</td><td>이온의 이동 확인 실험 (KMnO₄)</td></tr>
+  <tr><td>실험 날짜</td><td>${v('r-date')}</td></tr><tr><td>조 이름</td><td>${v('r-group')}</td></tr><tr><td>날씨/온도</td><td>${v('r-weather')}</td></tr></tbody></table>
+  <h3>👥 조원 역할</h3><table><thead><tr><th>역할</th><th>이름</th></tr></thead><tbody>${roleInfo}</tbody></table>
+  <h3>📸 시간별 사진</h3>${ph}
+  <h3>🔬 이온 이동 관찰</h3><table><thead><tr><th>이온</th><th>전하</th><th>이동 방향</th><th>특이사항</th></tr></thead><tbody>${resRows}</tbody></table>
+  <h3>📝 탐구 문제</h3>
+  <p><strong>Q1. MnO₄⁻ 이동 방향과 이유:</strong> ${v('rq-1')}</p>
+  <p><strong>Q2. 전압과 이동 속도:</strong> ${v('rq-2')}</p>
+  <p><strong>Q3. KNO₃ 수용액의 역할:</strong> ${v('rq-3')}</p>
+  <h3>이온 이동 방향</h3><p>${v('r-direction')}</p>
+  <h3>💡 결론</h3><p>${v('r-conclusion')}</p>
+  <h3>오차 및 한계</h3><p>${v('r-error')}</p>
+  <h3>더 탐구하고 싶은 점</h3><p>${v('r-more')}</p>
+  <h3>🖥️ 시뮬레이션 관찰 메모</h3>
+  <p><strong>예측:</strong> ${v('sim-predict')}</p>
+  <p><strong>시뮬레이션 결과:</strong> ${v('sim-result')}</p>
+  <p><strong>실험과 비교:</strong> ${v('sim-compare')}</p>
+  <h3>🔍 시뮬레이션 vs 실제 실험 비교</h3>
+  <p><strong>차이가 난 이유 (토의):</strong> ${v('r-sim-diff')}</p>
+  <p><strong>오차를 줄이려면 (토의):</strong> ${v('r-sim-reduce')}</p>
+  <p><strong>오차를 줄이려면 (AI 활용):</strong> ${v('r-sim-ai')}</p>`;
+}
+
+// ── 이미지 PDF 저장 (html2canvas + jsPDF) ──────────────────────────────────
+async function savePDF(){
+  buildReport();
+
+  // 라이브러리 확인
+  if(typeof html2canvas==='undefined'||typeof window.jspdf==='undefined'){
+    alert('PDF 라이브러리를 불러오는 중입니다. 잠시 후 다시 시도해주세요.');
+    return;
+  }
+
+  const { jsPDF } = window.jspdf;
+  const rpEl = document.getElementById('report-preview');
+  if(!rpEl) return;
+
+  // 오버레이 표시
+  const overlay = document.getElementById('pdf-overlay');
+  const bar = document.getElementById('pdf-progress-bar');
+  const label = document.getElementById('pdf-progress-label');
+  overlay.classList.add('show');
+
+  function setProgress(pct, msg){
+    bar.style.width = pct + '%';
+    label.textContent = msg;
+  }
+
+  try {
+    setProgress(10, '보고서 렌더링 준비 중...');
+
+    // no-print 버튼 일시 숨김
+    const noPrint = rpEl.closest('.tab-pane').querySelectorAll('.no-print');
+    noPrint.forEach(el=>el.style.display='none');
+
+    await new Promise(r=>setTimeout(r,100));
+    setProgress(20, '보고서를 이미지로 변환 중...');
+
+    const canvas = await html2canvas(rpEl, {
+      scale: 2,               // 고해상도 (2x)
+      useCORS: true,
+      allowTaint: true,
+      backgroundColor: '#ffffff',
+      scrollX: 0,
+      scrollY: -window.scrollY,
+      windowWidth: rpEl.scrollWidth,
+      onclone: (doc) => {
+        // 복제 문서에서 no-print 제거
+        doc.querySelectorAll('.no-print').forEach(el=>el.remove());
+      }
+    });
+
+    setProgress(70, 'PDF 페이지 생성 중...');
+
+    // no-print 복원
+    noPrint.forEach(el=>el.style.display='');
+
+    // A4 기준 (mm): 210 × 297
+    const A4_W = 210;
+    const A4_H = 297;
+    const MARGIN = 10; // mm
+    const contentW = A4_W - MARGIN * 2;
+
+    const imgW = canvas.width;
+    const imgH = canvas.height;
+
+    // canvas → 이미지 비율 계산
+    const ratio = contentW / (imgW / 3.7795); // px to mm (96dpi 기준)
+    const scaledH = (imgH / 3.7795) * ratio;  // 전체 이미지 높이 (mm)
+
+    const pageContentH = A4_H - MARGIN * 2;   // 한 페이지에 들어갈 높이
+    const totalPages = Math.ceil(scaledH / pageContentH);
+
+    const pdf = new jsPDF({ unit:'mm', format:'a4', orientation:'portrait' });
+
+    const imgData = canvas.toDataURL('image/jpeg', 0.95);
+
+    for(let page=0; page<totalPages; page++){
+      setProgress(70 + Math.floor((page/totalPages)*25), `페이지 ${page+1}/${totalPages} 생성 중...`);
+
+      if(page > 0) pdf.addPage();
+
+      // 현재 페이지에 그릴 이미지 y 오프셋 (mm)
+      const yOffset = -(page * pageContentH);
+
+      pdf.addImage(
+        imgData,
+        'JPEG',
+        MARGIN,
+        MARGIN + yOffset,
+        contentW,
+        scaledH,
+        '',
+        'FAST'
+      );
+
+      // 페이지 경계 위아래 흰색 마스킹 (잘린 부분 가리기)
+      pdf.setFillColor(255,255,255);
+      pdf.rect(0, 0, A4_W, MARGIN, 'F');
+      pdf.rect(0, A4_H - MARGIN, A4_W, MARGIN, 'F');
+    }
+
+    setProgress(98, 'PDF 저장 중...');
+    await new Promise(r=>setTimeout(r,200));
+
+    const groupName = (document.getElementById('r-group').value||'').trim();
+    const dateStr = (document.getElementById('r-date').value||'').replace(/[^0-9가-힣]/g,'');
+    const filename = `이온의이동_보고서${groupName?'_'+groupName:''}${dateStr?'_'+dateStr:''}.pdf`;
+    pdf.save(filename);
+
+    setProgress(100, '완료! 💾');
+    await new Promise(r=>setTimeout(r,800));
+
+  } catch(err){
+    console.error('PDF 생성 오류:', err);
+    alert('PDF 생성 중 오류가 발생했습니다.\n오류: ' + err.message);
+  } finally {
+    overlay.classList.remove('show');
+    bar.style.width = '0%';
+  }
+}
+
+// ── 인쇄 / HTML PDF ──────────────────────────────────────────────────────────
+function printReport(){
+  buildReport();
+  const rpEl=document.getElementById('report-preview');
+  if(!rpEl) return;
+  const rpHtml=rpEl.innerHTML;
+  const fullHtml=`<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<title>이온의 이동 실험 보고서</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;700;900&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Noto Sans KR',sans-serif;background:#fff;color:#222;padding:32px;font-size:13.5px;line-height:1.8}
+h2{font-size:20px;font-weight:900;text-align:center;margin-bottom:6px;color:#111;border-bottom:2px solid #222;padding-bottom:12px}
+h3{font-size:14px;font-weight:700;margin:16px 0 6px;color:#333;background:#f0f4ff;padding:5px 10px;border-radius:4px}
+p{color:#444;margin-bottom:6px}
+table{width:100%;border-collapse:collapse;margin:10px 0}
+th,td{padding:8px 12px;border:1px solid #ccc;text-align:center;font-size:13px}
+th{background:#dceeff;color:#1a4a8a;font-weight:700}
+td{color:#333}
+img{max-width:100%;display:block}
+@media print{body{padding:10px}}
+</style>
+</head>
+<body>
+${rpHtml}
+<script>window.addEventListener('load',function(){setTimeout(function(){window.print();},800)});<\/script>
+</body>
+</html>`;
+  try{
+    const blob=new Blob([fullHtml],{type:'text/html;charset=utf-8'});
+    const url=URL.createObjectURL(blob);
+    const a=document.createElement('a');a.href=url;a.target='_blank';a.rel='noopener';
+    document.body.appendChild(a);a.click();document.body.removeChild(a);
+    setTimeout(()=>URL.revokeObjectURL(url),10000);
+  }catch(e){
+    alert('보고서 창을 열 수 없습니다. 브라우저 팝업 차단을 해제하거나, Ctrl+P로 직접 인쇄해주세요.');
+  }
+}
+
+init();
+</script>
+</body>
+</html>
