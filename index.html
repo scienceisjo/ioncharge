@@ -147,6 +147,17 @@ td input{width:100%;background:transparent;border:none;color:var(--text);text-al
 .q-card{background:var(--card2);border:1.5px solid var(--border);border-radius:10px;padding:16px;margin-bottom:12px}
 .q-card h4{font-size:13px;font-weight:700;color:var(--text);margin-bottom:8px}
 .q-card textarea{width:100%;min-height:60px}
+/* 식별 정보 바 */
+#identity-bar{background:var(--surface);border-bottom:1.5px solid var(--border);padding:12px 36px;display:flex;align-items:center;gap:14px;flex-wrap:wrap;position:sticky;top:0;z-index:50}
+#identity-bar .id-mode{display:flex;gap:4px;background:var(--card2);border:1.5px solid var(--border);border-radius:9px;padding:3px}
+#identity-bar .id-mode button{border:none;background:none;padding:6px 12px;border-radius:7px;font-family:'Noto Sans KR',sans-serif;font-size:12px;font-weight:700;color:var(--text2);cursor:pointer;transition:all .15s}
+#identity-bar .id-mode button.on{background:var(--primary);color:#fff}
+#identity-bar .id-field{display:flex;align-items:center;gap:6px}
+#identity-bar .id-field label{font-size:12px;color:var(--text2);white-space:nowrap}
+#identity-bar .id-field input{width:120px;padding:6px 10px;font-size:12.5px}
+#identity-bar .id-status{font-size:12px;color:var(--text3);margin-left:auto}
+#identity-bar .id-status.saved{color:var(--success);font-weight:700}
+@media print{#identity-bar{position:static;border-bottom:1px solid #ccc}#identity-bar .id-mode,#identity-bar #id-save-btn,#identity-bar #id-clear-btn,#identity-bar .id-status{display:none}}
 /* PDF 저장 오버레이 */
 #pdf-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.55);z-index:9999;align-items:center;justify-content:center;flex-direction:column;gap:18px}
 #pdf-overlay.show{display:flex}
@@ -200,6 +211,22 @@ td input{width:100%;background:transparent;border:none;color:var(--text);text-al
   <button class="nav-btn locked" onclick="tryTab(11)" id="nb11"><span class="ic">📄</span> 보고서</button>
 </nav>
 <main id="content">
+
+<!-- 식별 정보 입력 바 (localStorage 저장) -->
+<div id="identity-bar">
+  <div class="id-mode">
+    <button id="idmode-student" class="on" onclick="setIdMode('student')">학번/이름</button>
+    <button id="idmode-group" onclick="setIdMode('group')">반/모둠</button>
+  </div>
+  <div class="id-field"><label>학교</label><input type="text" id="id-school" placeholder="해누리중학교" oninput="markIdUnsaved()"></div>
+  <div class="id-field" id="idf-a"><label>학번</label><input type="text" id="id-sno" placeholder="2학년 3반 12번" oninput="markIdUnsaved()"></div>
+  <div class="id-field" id="idf-b"><label>이름</label><input type="text" id="id-name" placeholder="홍길동" oninput="markIdUnsaved()"></div>
+  <div class="id-field" id="idf-c" style="display:none"><label>반</label><input type="text" id="id-class" placeholder="2학년 3반" oninput="markIdUnsaved()"></div>
+  <div class="id-field" id="idf-d" style="display:none"><label>모둠</label><input type="text" id="id-team" placeholder="3모둠" oninput="markIdUnsaved()"></div>
+  <button class="btn btn-primary btn-sm" id="id-save-btn" onclick="saveIdentity()">💾 저장</button>
+  <button class="btn btn-outline btn-sm" id="id-clear-btn" onclick="clearIdentity()">초기화</button>
+  <span class="id-status" id="id-status">저장되지 않음</span>
+</div>
 
 <!-- TAB 0: 안전 -->
 <section class="tab-pane active" id="t0">
@@ -811,6 +838,7 @@ function buildReport(){
   document.getElementById('rp-body').innerHTML=`
   <h3>📋 기본 정보</h3>
   <table><thead><tr><th>항목</th><th>내용</th></tr></thead><tbody>
+  ${identityReportHtml()}
   <tr><td>실험명</td><td>이온의 이동 확인 실험 (KMnO₄)</td></tr>
   <tr><td>실험 날짜</td><td>${v('r-date')}</td></tr><tr><td>조 이름</td><td>${v('r-group')}</td></tr><tr><td>날씨/온도</td><td>${v('r-weather')}</td></tr></tbody></table>
   <h3>👥 조원 역할</h3><table><thead><tr><th>역할</th><th>이름</th></tr></thead><tbody>${roleInfo}</tbody></table>
@@ -995,7 +1023,82 @@ ${rpHtml}
   }
 }
 
+// ── 식별 정보 (학교/학번/이름 또는 학교/반/모둠) localStorage 저장 ──
+const ID_KEY='ion_lab_identity';
+let idMode='student';
+function setIdMode(mode){
+  idMode=mode;
+  document.getElementById('idmode-student').classList.toggle('on',mode==='student');
+  document.getElementById('idmode-group').classList.toggle('on',mode==='group');
+  const student=mode==='student';
+  document.getElementById('idf-a').style.display=student?'flex':'none';
+  document.getElementById('idf-b').style.display=student?'flex':'none';
+  document.getElementById('idf-c').style.display=student?'none':'flex';
+  document.getElementById('idf-d').style.display=student?'none':'flex';
+  markIdUnsaved();
+}
+function markIdUnsaved(){
+  const st=document.getElementById('id-status');
+  st.textContent='저장되지 않음';st.classList.remove('saved');
+}
+function getIdentity(){
+  return {
+    mode:idMode,
+    school:(document.getElementById('id-school').value||'').trim(),
+    sno:(document.getElementById('id-sno').value||'').trim(),
+    name:(document.getElementById('id-name').value||'').trim(),
+    cls:(document.getElementById('id-class').value||'').trim(),
+    team:(document.getElementById('id-team').value||'').trim()
+  };
+}
+function saveIdentity(){
+  const data=getIdentity();
+  if(!data.school || (data.mode==='student' ? !(data.sno||data.name) : !(data.cls||data.team))){
+    alert('학교와 나머지 항목을 입력해주세요!');return;
+  }
+  try{
+    localStorage.setItem(ID_KEY,JSON.stringify(data));
+    const st=document.getElementById('id-status');
+    st.textContent='✓ 저장됨';st.classList.add('saved');
+    // 보고서 조 이름 자동 채우기 (비어 있을 때만)
+    const grp=document.getElementById('r-group');
+    if(grp && !grp.value.trim()) grp.value = data.mode==='group' ? data.team : data.name;
+  }catch(e){
+    alert('저장에 실패했습니다. 브라우저의 저장소 설정을 확인해주세요.\n'+e.message);
+  }
+}
+function loadIdentity(){
+  try{
+    const raw=localStorage.getItem(ID_KEY);
+    if(!raw) return;
+    const d=JSON.parse(raw);
+    setIdMode(d.mode==='group'?'group':'student');
+    document.getElementById('id-school').value=d.school||'';
+    document.getElementById('id-sno').value=d.sno||'';
+    document.getElementById('id-name').value=d.name||'';
+    document.getElementById('id-class').value=d.cls||'';
+    document.getElementById('id-team').value=d.team||'';
+    const st=document.getElementById('id-status');
+    st.textContent='✓ 저장된 정보 불러옴';st.classList.add('saved');
+  }catch(e){console.error('식별 정보 불러오기 실패',e);}
+}
+function clearIdentity(){
+  if(!confirm('저장된 식별 정보를 모두 지울까요?')) return;
+  try{localStorage.removeItem(ID_KEY);}catch(e){}
+  ['id-school','id-sno','id-name','id-class','id-team'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
+  setIdMode('student');
+  markIdUnsaved();
+}
+function identityReportHtml(){
+  const d=getIdentity();
+  if(d.mode==='group'){
+    return `<tr><td>학교</td><td>${d.school||'-'}</td></tr><tr><td>반</td><td>${d.cls||'-'}</td></tr><tr><td>모둠</td><td>${d.team||'-'}</td></tr>`;
+  }
+  return `<tr><td>학교</td><td>${d.school||'-'}</td></tr><tr><td>학번</td><td>${d.sno||'-'}</td></tr><tr><td>이름</td><td>${d.name||'-'}</td></tr>`;
+}
+
 init();
+loadIdentity();
 </script>
 </body>
 </html>
